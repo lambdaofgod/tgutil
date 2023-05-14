@@ -1,0 +1,128 @@
+#+title: Generate_texts
+#+PROPERTY: header-args :tangle generate_texts.py
+
+Conda env hugginggpt
+
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both
+import pandas as pd
+from pipeline import sample_data, expand_documents, evaluate_generated_texts
+from tgutil.configs import PipelineConfig, ConfigPaths
+import logging
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both
+logging.basicConfig(level="INFO")
+cfg_path = "conf/text_generation/small_config.yaml"
+path_cfg = ConfigPaths.load(cfg_path)
+cfg = PipelineConfig.load(cfg_path)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
+model_type = path_cfg.generation
+model_type
+#+END_SRC
+
+#+RESULTS:
+: rwkv
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
+cfg
+#+END_SRC
+
+#+RESULTS:
+: sampling_config=SamplingConfig(pq_data_path='data/nbow_data_test.parquet', out_data_path='data/prompt_infos.jsonl', n_samples=10, dset_kwargs={'dataset_project': 'tgutil_llms', 'dataset_name': 'prompt_info_sample'}) prompt_config=PromptConfig(prompt_template_name='md_prompt.jinja', templates_path='prompt_templates', data_path='data/prompt_infos.jsonl') generation_config=TextGenerationConfig(model_name='sgugger/rwkv-7b-pile', out_dir='output') name='sampled document expansion pipeline' project='github_search/document_expansion'
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both
+
+sampling_config = cfg.sampling_config
+generation_config = cfg.generation_config
+prompt_config = cfg.prompt_config
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
+cfg
+#+END_SRC
+
+#+RESULTS:
+: sampling_config=SamplingConfig(pq_data_path='data/nbow_data_test.parquet', out_data_path='data/prompt_infos.jsonl', n_samples=10, dset_kwargs={'dataset_project': 'tgutil_llms', 'dataset_name': 'prompt_info_sample'}) prompt_config=PromptConfig(prompt_template_name='md_prompt.jinja', templates_path='prompt_templates', data_path='data/prompt_infos.jsonl') generation_config=TextGenerationConfig(model_name='sgugger/rwkv-7b-pile', out_dir='output') name='sampled document expansion pipeline' project='github_search/document_expansion'
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both
+prompt_infos = sample_data(sampling_config)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both
+prompt_infos[:1]
+#+END_SRC
+
+#+RESULTS:
+| PromptInfo | (repo_records= ((dependencies : comic_layout/tests.py frontend/apps.py keyframes/admin.py settings/urls.py keyframes/keyframes.py get_yt_comix_media_urls.py style_transfer/apps.py settings/wsgi.py popularity/models.py comic_layout/comic_layout.py tasks : ['style transfer'] repo : maciej3031/comixify) (dependencies : contagiograms/consts.py setup.py contagiograms/contagiograms.py contagiograms/__init__.py contagiograms/cli.py contagiograms/utils.py valid_windowsize parse_args valid_date SortedMenu tasks : ['time series'] repo : compstorylab/contagiograms)) predicted_repo_record= (dependencies : table/__init__.py main.py table/IO.py join_dicts TableDataset __setstate__ __getstate__ merge_vocabs OrderedIterator read_anno_json tasks : ['semantic parsing'] repo : inyukwo1/Coarse2fine_boilerplate) true_tasks= (semantic parsing) repo_text_field= dependencies) |
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
+generated_records = expand_documents(generation_config, prompt_config, prompt_infos)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
+generated_records.to_json(f"output/{model_type}_generated_records.json", orient="records", lines=True)
+#+END_SRC
+
+#+RESULTS:
+: None
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both
+generated_records = pd.read_json(f"output/{model_type}_generated_records.json", orient="records", lines=True)
+#+END_SRC
+
+#+RESULTS:
+
+#+RESULTS:
+: <class 'numpy.recarray'>
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
+generated_records["repo"] = generated_records["predicted_repo_record"].apply(lambda rec: rec["repo"])
+generated_records["tasks"] = generated_records["true_tasks"]
+generated_records.columns
+#+END_SRC
+
+#+RESULTS:
+: Index(['repo_records', 'predicted_repo_record', 'true_tasks',
+:        'repo_text_field', 'input_text', 'generated_text', 'repo', 'tasks'],
+:       dtype='object')
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
+evaluated_df = evaluate_generated_texts(generated_records[["repo", "generated_text", "tasks"]])
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
+evaluated_df.to_json(f"output/{model_type}_evaluated_records.json", orient="records", lines=True)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+                                                repo  ... sentence_transformer_similarity
+0                   inyukwo1/Coarse2fine_boilerplate  ...                        0.331527
+1                       julian-risch/TRAC-COLING2018  ...                        0.050634
+2                 fyangneil/pavement-crack-detection  ...                        0.025184
+3                  sweetcocoa/DeepComplexUNetPyTorch  ...                        0.329391
+4  ChingtingC/Code-Switching-Sentence-Generation-...  ...                        0.287510
+5                facebookresearch/online_dialog_eval  ...                        0.175279
+6                                        Leotju/MGAN  ...                        0.101265
+7                          d-maurya/hypred_tensorEVD  ...                        0.166257
+8                               ecker-lab/robust-bdd  ...                        0.127960
+9                           team-approx-bayes/dnn2gp  ...                        0.207896
+
+[10 rows x 15 columns]
+#+end_example

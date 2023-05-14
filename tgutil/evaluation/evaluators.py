@@ -44,11 +44,7 @@ class EvalDFPreprocessor:
     @classmethod
     def prepare_texts_for_scoring(cls, texts_df):
         pred_raw_texts = (
-            texts_df["generated_text"]
-            .str.strip()
-            .str.split("\n")
-            .apply(itemgetter(0))
-            .apply(cls.sanitize_list_str)
+            texts_df["generated_text"].str.strip().apply(cls.sanitize_list_str)
         )
         texts_df["predicted_text"] = pred_raw_texts.apply(
             EvalDFPreprocessor.sanitize_list_str

@@ -34,7 +34,7 @@ def is_allowed_metric(metric_name):
 
 
 def load_metric(metric_name, **metric_kwargs):
-    assert is_allowed_metric(metric_name)
+    assert is_allowed_metric(metric_name), f"unsupported metric: {metric_name}"
     if StringMetricType.is_string_metric(metric_name):
         return StringBasedMetric.load(metric_name)
     elif metric_name == "wmd":
