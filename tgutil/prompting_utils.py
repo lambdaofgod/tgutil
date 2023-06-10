@@ -1,24 +1,63 @@
 import abc
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 from promptify import Prompter
-import minichain
 from minichain import prompt
-import torch
 from minichain.backend import Backend
 from mlutil import minichain_utils
-from mlutil.text import rwkv_utils
 from pydantic import BaseModel, Field
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-    Text2TextGenerationPipeline,
-)
-from transformers import pipeline as hf_pipeline
 import jinja2
 from tgutil.prompting import PromptInfo
+import requests
+from typing import Iterator
+from tgutil.configs import TextGenerationConfig, APIConfig
+
+
+def get_default_api_params():
+    return {
+        "prompt": "string",
+        "max_length": 512,
+        "max_new_tokens": 50,
+        "n": 1,
+        "stop": "string",
+        "stream": False,
+        "sampling_parameters": {
+            "temperature": 0.5,
+            "top_k": None,
+            "top_p": 0.9,
+            "logit_bias": {},
+            "presence_penalty": 0,
+            "frequency_penalty": 1.0,
+            "repetition_penalty": 1.8,
+            "typical_p": 0.9,
+        },
+    }
+
+
+class APIBackend(Backend, BaseModel):
+    endpoint_url: str
+    default_parameters: dict = Field(default_factory=get_default_api_params)
+
+    @property
+    def description(self) -> str:
+        return ""
+
+    def run(self, request: str) -> str:
+        api_json = {**self.default_parameters, "prompt": request}
+        return requests.post(self.endpoint_url, json=api_json).json()["text"]
+
+    def run_stream(self, request: str) -> Iterator[str]:
+        yield self.run(request)
+
+    async def arun(self, request: str) -> str:
+        return self.run(request)
+
+    def _block_input(self, gr):  # type: ignore
+        return gr.Textbox(show_label=False)
+
+    def _block_output(self, gr):  # type: ignore
+        return gr.Textbox(show_label=False)
 
 
 class PrompterWrapper(abc.ABC):
@@ -56,12 +95,12 @@ class MinichainPrompterWrapper(PrompterWrapper, BaseModel):
     @classmethod
     def create(
         cls,
-        model_name: str,
+        text_generation_config: TextGenerationConfig,
         prompt_template: Optional[str],
         prompt_templates_path: Optional[str],
         prompt_template_name: Optional[str],
         max_length: int = 512,
-        max_new_tokens: int = 20,
+        max_new_tokens: int = 50,
     ):
         if prompt_template is not None:
             prompt_template = prompt_template
@@ -78,7 +117,7 @@ class MinichainPrompterWrapper(PrompterWrapper, BaseModel):
         )
 
         model = cls.load_model(
-            MinichainHFConfig(model_name_or_path=model_name),
+            text_generation_config,
             max_length,
             max_new_tokens,
         )
@@ -114,10 +153,12 @@ class MinichainPrompterWrapper(PrompterWrapper, BaseModel):
     @classmethod
     def load_model(
         cls,
-        config: Union[MinichainHFConfig, MinichainRWKVConfig],
+        config: Union[APIConfig, MinichainHFConfig, MinichainRWKVConfig],
         max_length,
         max_new_tokens,
     ):
+        if type(config) is APIConfig:
+            return APIBackend(endpoint_url=config.endpoint_url)
         if type(config) is MinichainRWKVConfig:
             return minichain_utils.RWKVModel.load(config.model_name_or_path)
         else:

@@ -1,3 +1,5 @@
+jsonlines
+rwkv
 pydantic_yaml
 fire
 promptify
@@ -5,7 +7,6 @@ markupsafe==2.0.1
 minichain
 evaluate
 sentence-transformers
-git+https://github.com/google-research/bleurt
 datasets==2.10.0
 rouge_score
 POT
