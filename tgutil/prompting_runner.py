@@ -29,7 +29,6 @@ from tgutil.configs import (
     TextGenerationConfig,
     PromptConfig,
 )
-from tgutil.experiment_managers import ClearMLExperimentManager
 from tgutil.prompting import PromptInfo
 from tgutil.prompting_utils import PrompterWrapper
 import json
@@ -38,12 +37,6 @@ np.random.seed(seed=0)
 
 
 logging.basicConfig(level="INFO")
-
-
-def get_experiment_manager(project_name, task_name, config=dict()):
-    return ClearMLExperimentManager(
-        project_name=project_name, task_name=task_name, config=config
-    )
 
 
 def sample_data(

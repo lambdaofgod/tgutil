@@ -32,6 +32,13 @@ class APIConfig(TextGenerationConfig):
     model_name: str
 
 
+def load_config_from_dict(config_dict: dict):
+    if "endpoint_url" in config_dict:
+        return APIConfig(**config_dict)
+    else:
+        return LocalModelConfig(**config_dict)
+
+
 class ConfigPaths(YamlModel):
     sampling: str
     generation: str
