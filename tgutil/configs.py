@@ -1,21 +1,30 @@
-from pydantic_yaml import YamlModel
-from pydantic import Field
+from pydantic import Field, BaseModel
 from pathlib import Path as P
 import yaml
-from typing import Optional
+from typing import Optional, Dict, Any
+
+
+class YamlModel(BaseModel):
+    @classmethod
+    def parse_file(cls, path: str):
+        with open(path) as f:
+            return cls(**yaml.safe_load(f))
 
 
 class SamplingConfig(YamlModel):
     pq_data_path: str
     out_data_path: str
     n_samples: Optional[int] = 100
-    dset_kwargs = dict(dataset_project="tgutil_llms", dataset_name="prompt_info_sample")
+    dset_kwargs: Dict[str, Any] = dict(
+        dataset_project="tgutil_llms", dataset_name="prompt_info_sample"
+    )
 
 
 class PromptConfig(YamlModel):
     prompt_template_name: str
     templates_path: str
     data_path: str
+    field_mapping: dict
 
 
 class TextGenerationConfig(YamlModel):
@@ -33,7 +42,7 @@ class APIConfig(TextGenerationConfig):
 
 
 def load_config_from_dict(config_dict: dict):
-    if "endpoint_url" in config_dict:
+    if "endpoint_url" in config_dict.keys():
         return APIConfig(**config_dict)
     else:
         return LocalModelConfig(**config_dict)
@@ -61,6 +70,7 @@ class PipelineConfig(YamlModel):
     generation_config: TextGenerationConfig
     name: str
     project: str
+    paperswithcode_path: str
 
     @staticmethod
     def load_from_config_paths(cfg_paths: ConfigPaths):

@@ -8,10 +8,11 @@ from minichain.backend import Backend
 from mlutil import minichain_utils
 from pydantic import BaseModel, Field
 import jinja2
-from tgutil.prompting import PromptInfo
+from tgutil.prompting import ContextPromptInfo
 import requests
 from typing import Iterator
 from tgutil.configs import TextGenerationConfig, APIConfig
+from returns.result import Result, Success, Failure
 
 
 def get_default_api_params():
@@ -45,7 +46,8 @@ class APIBackend(Backend, BaseModel):
 
     def run(self, request: str) -> str:
         api_json = {**self.default_parameters, "prompt": request}
-        return requests.post(self.endpoint_url, json=api_json).json()["text"]
+        api_result = requests.post(self.endpoint_url, json=api_json)
+        return api_result.json()["texts"]
 
     def run_stream(self, request: str) -> Iterator[str]:
         yield self.run(request)
@@ -61,19 +63,25 @@ class APIBackend(Backend, BaseModel):
 
 
 class PrompterWrapper(abc.ABC):
-    prompter: Prompter
-    template_name: str
-
     @abc.abstractmethod
-    def get_generation_results(self, pinfo: PromptInfo) -> dict:
+    def get_generation_results(
+        self, pinfo: ContextPromptInfo
+    ) -> Result[dict, Exception]:
         pass
 
-    def get_dict_with_generated_text(self, pinfo: PromptInfo):
+    def get_dict_with_generated_text(
+        self, pinfo: ContextPromptInfo
+    ) -> Result[dict, Exception]:
         out_record = dict(pinfo)
-        generated_text = self.get_generation_results(pinfo)
         out_record["input_text"] = pinfo.format_jinja_template(self.prompt_template)
-        out_record["generated_text"] = generated_text
-        return out_record
+
+        generated_result = self.get_generation_results(pinfo)
+        return generated_result.map(lambda text: self._add_to_record(text, out_record))
+
+    @classmethod
+    def _add_to_record(cls, text, record):
+        record["generated_text"] = text
+        return record
 
 
 class MinichainHFConfig(BaseModel):
@@ -86,11 +94,16 @@ class MinichainRWKVConfig(BaseModel):
 
 
 class MinichainPrompterWrapper(PrompterWrapper, BaseModel):
-    generate_text_fn: Callable[[PromptInfo], str]
+    generate_text_fn: Callable[[ContextPromptInfo], str]
     prompt_template: jinja2.Template
 
-    def get_generation_results(self, pinfo: PromptInfo):
-        return self.generate_text_fn(pinfo).run()
+    def get_generation_results(
+        self, pinfo: ContextPromptInfo
+    ) -> Result[str, Exception]:
+        try:
+            return Success(self.generate_text_fn(pinfo).run())
+        except Exception as e:
+            return Failure(e)
 
     @classmethod
     def create(
@@ -123,14 +136,14 @@ class MinichainPrompterWrapper(PrompterWrapper, BaseModel):
         )
 
         @prompt(model, **minichain_kwargs)
-        def generate_text_fn(model, prompt_info: PromptInfo):
+        def generate_text_fn(model, prompt_info: ContextPromptInfo):
             """
             calling model on a dict takes care of
             formatting the prompt from str template or template loaded from file
             """
             return model(dict(prompt_info))
 
-        def format_promptinfo(pinfo: PromptInfo):
+        def format_promptinfo(pinfo: ContextPromptInfo):
             return pinfo.format_prompt()
 
         return MinichainPrompterWrapper(
@@ -171,13 +184,58 @@ class MinichainPrompterWrapper(PrompterWrapper, BaseModel):
         arbitrary_types_allowed = True
 
 
+class PromptFormatter(BaseModel):
+    content_text_field: str = Field(default="dependencies")
+    record_name_field: str = Field(default="repo")
+    true_text_field: str = Field(default="tasks")
+
+    def get_repo_args(self, record, use_tasks=True):
+        return [
+            record[self.record_name_field],
+            ", ".join(record[self.repo_text_field]),
+            record[self.true_text_field],
+        ]
+
+    def get_prompt_args(self):
+        repo_with_tags_args = [
+            self.get_repo_args(record) for record in self.repo_records
+        ]
+        predicted_repo_args = self.get_repo_args(
+            self.predicted_repo_record, use_tasks=False
+        )
+        return [
+            arg
+            for rec_args in repo_with_tags_args + [predicted_repo_args]
+            for arg in rec_args
+        ]
+
+    def get_prompter_input_dict(self):
+        args_dict = {}
+        args_dict["input_record_info"] = [
+            (
+                rec[self.record_name_field],
+                rec[self.content_text_field],
+                rec[self.true_text_field],
+            )
+            for rec in self.repo_records
+        ]
+        args_dict["predicted_record"] = self.predicted_repo_record[
+            self.record_name_field
+        ]
+        args_dict["predicted_content"] = self.predicted_repo_record[
+            self.content_text_field
+        ]
+        return args_dict
+
+
 class PromptifyPrompterWrapper(PrompterWrapper):
     prompter: Prompter
     template_name: str
     max_tokens: int = Field(default=20)
+    formatter: PromptFormatter
 
-    def get_generation_results(self, pinfo: PromptInfo):
-        promptify_args = pinfo.get_promptify_input_dict()
+    def get_generation_results(self, pinfo: ContextPromptInfo):
+        promptify_args = self.formatter.get_prompter_input_dict(pinfo)
         return self.prompter.fit(
             template_name=self.template_name,
             max_tokens=self.max_tokens,
