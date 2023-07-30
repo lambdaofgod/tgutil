@@ -15,39 +15,87 @@ from tgutil.configs import TextGenerationConfig, APIConfig
 from returns.result import Result, Success, Failure
 
 
-def get_default_api_params():
-    return {
-        "prompt": "string",
-        "max_length": 512,
-        "max_new_tokens": 50,
-        "n": 1,
-        "stop": "string",
-        "stream": False,
-        "sampling_parameters": {
-            "temperature": 0.5,
-            "top_k": None,
-            "top_p": 0.9,
-            "logit_bias": {},
-            "presence_penalty": 0,
-            "frequency_penalty": 1.0,
-            "repetition_penalty": 1.8,
-            "typical_p": 0.9,
-        },
-    }
+class APIParams:
+    @classmethod
+    def get_api_params(cls, input_text: str, flavor: str):
+        api_params_mapping = {
+            "text-generation-inference": cls._get_text_generation_inference_default_api_params,
+            "lmserver": cls._get_lmserver_default_api_params,
+        }
+        api_text_field_mapping = {
+            "text-generation-inference": "inputs",
+            "lmserver": "prompt",
+        }
+        assert flavor in api_params_mapping.keys()
+        params = api_params_mapping[flavor]()
+        params[api_text_field_mapping[flavor]] = input_text
+        return params
+
+    @classmethod
+    def _get_text_generation_inference_default_api_params(cls):
+        return {
+            "inputs": "My name is Olivier and I",
+            "parameters": {
+                "best_of": 1,
+                "decoder_input_details": True,
+                "details": True,
+                "do_sample": True,
+                "max_new_tokens": 20,
+                "repetition_penalty": 1.03,
+                "return_full_text": False,
+                "seed": None,
+                "stop": ["photographer"],
+                "temperature": 0.5,
+                "top_k": 10,
+                "top_p": 0.95,
+                "truncate": None,
+                "typical_p": 0.95,
+                "watermark": True,
+            },
+        }
+
+    @classmethod
+    def _get_lmserver_default_api_params(cls):
+        return {
+            "prompt": "string",
+            "max_length": 512,
+            "max_new_tokens": 50,
+            "n": 1,
+            "stop": "string",
+            "stream": False,
+            "sampling_parameters": {
+                "temperature": 0.5,
+                "top_k": None,
+                "top_p": 0.9,
+                "logit_bias": {},
+                "presence_penalty": 0,
+                "frequency_penalty": 1.0,
+                "repetition_penalty": 1.8,
+                "typical_p": 0.9,
+            },
+        }
 
 
 class APIBackend(Backend, BaseModel):
     endpoint_url: str
-    default_parameters: dict = Field(default_factory=get_default_api_params)
+    flavor: str
 
     @property
     def description(self) -> str:
         return ""
 
     def run(self, request: str) -> str:
-        api_json = {**self.default_parameters, "prompt": request}
-        api_result = requests.post(self.endpoint_url, json=api_json)
-        return api_result.json()["texts"]
+        params = APIParams.get_api_params(request, self.flavor)
+        response = requests.post(self.endpoint_url, json=params).json()
+        return self._get_text(response)
+
+    def _get_text(self, response):
+        if self.flavor == "lmserver":
+            return response["texts"]
+        elif self.flavor == "text-generation-inference":
+            return [response["generated_text"]]
+        else:
+            raise ValueError(f"Unknown flavor: {self.flavor}")
 
     def run_stream(self, request: str) -> Iterator[str]:
         yield self.run(request)
@@ -101,8 +149,12 @@ class MinichainPrompterWrapper(PrompterWrapper, BaseModel):
         self, pinfo: ContextPromptInfo
     ) -> Result[str, Exception]:
         try:
-            return Success(self.generate_text_fn(pinfo).run())
+            generation_result = self.generate_text_fn(pinfo).run()
+            return Success(generation_result)
         except Exception as e:
+            import ipdb
+
+            ipdb.set_trace()
             return Failure(e)
 
     @classmethod
@@ -171,7 +223,7 @@ class MinichainPrompterWrapper(PrompterWrapper, BaseModel):
         max_new_tokens,
     ):
         if type(config) is APIConfig:
-            return APIBackend(endpoint_url=config.endpoint_url)
+            return APIBackend(endpoint_url=config.endpoint_url, flavor=config.flavor)
         if type(config) is MinichainRWKVConfig:
             return minichain_utils.RWKVModel.load(config.model_name_or_path)
         else:
@@ -239,7 +291,7 @@ class PromptifyPrompterWrapper(PrompterWrapper):
         return self.prompter.fit(
             template_name=self.template_name,
             max_tokens=self.max_tokens,
-            **promptify_args
+            **promptify_args,
         )
 
     class Config:

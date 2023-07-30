@@ -39,6 +39,7 @@ class LocalModelConfig(TextGenerationConfig):
 class APIConfig(TextGenerationConfig):
     endpoint_url: str
     model_name: str
+    flavor: str = Field(default="text-generation-inference")
 
 
 def load_config_from_dict(config_dict: dict):

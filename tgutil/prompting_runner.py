@@ -52,7 +52,6 @@ class DocumentExpander(BaseModel):
         expand documents by generating tasks using PrompterWrapper
         with prompt template et c specified in TextGenerationConfig
         """
-        print(f"loading data from {self.prompts_config.data_path}...")
         model_nm = P(
             self.text_generation_config.model_name.replace("/", "-")
         ).parent.name
@@ -63,7 +62,7 @@ class DocumentExpander(BaseModel):
             f"expanding data using text generator model: {self.text_generation_config.model_name}..."
         )
 
-        generated_texts_df, failures = self._get_generation_results(prompt_infos)
+        generated_texts_df, failures = self._generate(prompt_infos)
         return generated_texts_df, failures
 
     @staticmethod
@@ -71,6 +70,7 @@ class DocumentExpander(BaseModel):
         prompts_config: PromptConfig,
         sampling_config: SamplingConfig,
     ):
+        print(f"loading data from {prompts_config.data_path}...")
         prompt_infos = ContextLoader(
             data_path=sampling_config.pq_data_path,
             field_mapping=prompts_config.field_mapping,
@@ -114,9 +114,11 @@ class DocumentExpander(BaseModel):
                 prompt_infos, generation=generation
             )
 
-    def _get_generation_results(self, prompt_infos):
+    def _generate(self, prompt_infos):
         pair_results = self._get_generation_result_pairs(prompt_infos)
         [pair_results_copy1, pair_results_copy2] = itertools.tee(pair_results)
-        result_dfs = [df for (df, _) in pair_results_copy1]
+        result_dfs = [
+            df.assign(generation=i) for (i, (df, _)) in enumerate(pair_results_copy1)
+        ]
         failures = [failure for (_, failure) in pair_results_copy2]
         return pd.concat(result_dfs), failures

@@ -26,9 +26,17 @@ class TextGenerationEvaluator(BaseModel):
         ]
         return pd.concat(generation_metrics_dfs, axis=1)
 
-    def get_evaluated_df(self, texts_df):
+    def get_df_with_added_scores(self, texts_df, stratify_val, stratify):
+        group_df = texts_df[texts_df[stratify] == stratify_val]
+        return pd.concat([group_df, self.get_scores(group_df)], axis=1)
+
+    def get_evaluated_df(self, texts_df, stratify):
+        stratifying_idxs = set(texts_df[stratify])
         return pd.concat(
-            [texts_df, self.get_scores(texts_df)],
+            [
+                self.get_df_with_added_scores(texts_df, stratify_val, stratify)
+                for stratify_val in stratifying_idxs
+            ],
             axis=1,
         )
 
