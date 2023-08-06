@@ -152,9 +152,6 @@ class MinichainPrompterWrapper(PrompterWrapper, BaseModel):
             generation_result = self.generate_text_fn(pinfo).run()
             return Success(generation_result)
         except Exception as e:
-            import ipdb
-
-            ipdb.set_trace()
             return Failure(e)
 
     @classmethod
@@ -193,6 +190,7 @@ class MinichainPrompterWrapper(PrompterWrapper, BaseModel):
             calling model on a dict takes care of
             formatting the prompt from str template or template loaded from file
             """
+
             return model(dict(prompt_info))
 
         def format_promptinfo(pinfo: ContextPromptInfo):
