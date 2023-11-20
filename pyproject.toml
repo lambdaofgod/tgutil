@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "tgutil"
+version = "0.1.0"
+description = ""
+authors = ["Jakub 'lambdaofgod' Bartczuk <bartczukkuba@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">3.9,<3.13"
+jsonlines = "^4.0.0"
+rwkv = "^0.8.22"
+pydantic-yaml = "^1.2.0"
+fire = "^0.5.0"
+promptify = "^2.0.3"
+markupsafe = "2.0.1"
+minichain = "^0.3.3"
+evaluate = "^0.4.1"
+sentence-transformers = "^2.2.2"
+datasets = "2.10.0"
+rouge-score = "^0.1.2"
+pot = "^0.9.1"
+returns = "^0.22.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
