@@ -21,7 +21,7 @@ class ContextLoader(BaseModel):
         return str_df
 
     def _get_pandas_dicts(self, df):
-        for _, row in self._convert_lists_to_str(df).iterrows():
+        for _, row in df.iterrows():
             row_dict = dict(row)
             yield row_dict
 
@@ -33,7 +33,7 @@ class ContextLoader(BaseModel):
 
     def load_contexts_df(self, n_samples=1000):
         raw_df = self._load_df(self.data_path)
-        df = raw_df[self.used_cols]
+        df = self._convert_lists_to_str(raw_df[self.used_cols])
         n_samples = df.shape[0] if n_samples is None else n_samples
 
         if n_samples is None:
