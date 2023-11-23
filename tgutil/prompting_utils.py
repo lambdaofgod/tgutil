@@ -86,6 +86,7 @@ class APIBackend(Backend, BaseModel):
 
     def run(self, request: str) -> str:
         params = APIParams.get_api_params(request, self.flavor)
+
         response = requests.post(self.endpoint_url, json=params).json()
         return self._get_text(response)
 

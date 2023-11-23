@@ -50,10 +50,24 @@ class EvalDFPreprocessor(BaseModel):
         return task_line.split(", ")
 
     def preprocess_texts(self, texts):
-        return texts.apply(lambda t: self.sanitize_str(t, self.sanitize_re))
+        return texts.apply(self.sanitize_string)
+
+    @classmethod
+    def sanitize_string(cls, s):
+        try:
+            sanitize_re = "\[(.*)\]?"
+            extracted_sanitized_part = next(re.finditer(sanitize_re, s)).group()
+        except:
+            print(s)
+            extracted_sanitized_part = s
+        punctuation_pattern = r"([{}])".format("\[\]\(\)'")
+        cleaned_m = re.sub(punctuation_pattern, "", extracted_sanitized_part)
+        deduplicated_m = set([part.strip() for part in cleaned_m.split(r",")])
+        return " ".join(deduplicated_m)
 
     @classmethod
     def sanitize_str(cls, s, sanitize_re):
+        """older version"""
         if type(s) is list and len(s) == 1:
             s = s[0]
         if sanitize_re is not None:
@@ -66,9 +80,10 @@ class EvalDFPreprocessor(BaseModel):
         try:
             m = next(re.finditer(sanitize_re, s))
             return ", ".join(ast.literal_eval(m.group()))
-        except:
+        except Exception as e:
+            print(e)
             return s
 
     @classmethod
     def postprocess_reference_texts(cls, texts_df, reference_text_col):
-        texts_df["true_tasks"].str.join(", ")
+        texts_df[self.reference_text_col].str.join(", ")

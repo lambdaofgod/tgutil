@@ -69,9 +69,6 @@ class PipelineConfig(YamlModel):
     sampling_config: SamplingConfig
     prompt_config: PromptConfig
     generation_config: TextGenerationConfig
-    name: str
-    project: str
-    paperswithcode_path: str
 
     @staticmethod
     def load_from_config_paths(cfg_paths: ConfigPaths):

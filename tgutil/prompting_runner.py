@@ -7,13 +7,11 @@ from typing import Dict, List, Tuple
 
 import itertools
 from tgutil.context_loader import ContextLoader
-import clearml
 import fire
 import jsonlines
 import numpy as np
 import pandas as pd
 import tqdm
-from clearml import Dataset, PipelineController, Task
 from pydantic.dataclasses import dataclass
 
 from tgutil.prompting import *
