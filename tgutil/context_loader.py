@@ -17,7 +17,7 @@ class ContextLoader(BaseModel):
         str_df = df.copy()
         for col in self.used_cols:
             if type(str_df[col].iloc[0]) is list:
-                str_df[col] = str_df[col].apply(" ".join)
+                str_df[col] = str_df[col].apply(", ".join)
         return str_df
 
     def _get_pandas_dicts(self, df):

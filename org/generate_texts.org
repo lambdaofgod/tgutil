@@ -7,7 +7,7 @@ Conda env hugginggpt
 #+BEGIN_SRC python :session generate_texts.org  :exports both
 import pandas as pd
 from pipeline import sample_data, expand_documents, evaluate_generated_texts
-from tgutil.configs import PipelineConfig, ConfigPaths
+from tgutil.configs import PipelineConfig, ConfigPaths, APIConfig
 import logging
 #+END_SRC
 
@@ -15,7 +15,7 @@ import logging
 
 #+BEGIN_SRC python :session generate_texts.org  :exports both
 logging.basicConfig(level="INFO")
-cfg_path = "conf/text_generation/small_config.yaml"
+cfg_path = "conf/text_generation/config.yaml"
 path_cfg = ConfigPaths.load(cfg_path)
 cfg = PipelineConfig.load(cfg_path)
 #+END_SRC
@@ -24,23 +24,24 @@ cfg = PipelineConfig.load(cfg_path)
 
 #+BEGIN_SRC python :session generate_texts.org  :exports both :async
 model_type = path_cfg.generation
-model_type
+model_type = "rwkv-4-raven-7b"
 #+END_SRC
 
 #+RESULTS:
-: rwkv
 
 #+BEGIN_SRC python :session generate_texts.org  :exports both :async
 cfg
 #+END_SRC
 
 #+RESULTS:
-: sampling_config=SamplingConfig(pq_data_path='data/nbow_data_test.parquet', out_data_path='data/prompt_infos.jsonl', n_samples=10, dset_kwargs={'dataset_project': 'tgutil_llms', 'dataset_name': 'prompt_info_sample'}) prompt_config=PromptConfig(prompt_template_name='md_prompt.jinja', templates_path='prompt_templates', data_path='data/prompt_infos.jsonl') generation_config=TextGenerationConfig(model_name='sgugger/rwkv-7b-pile', out_dir='output') name='sampled document expansion pipeline' project='github_search/document_expansion'
+: sampling_config=SamplingConfig(pq_data_path='data/nbow_data_test.parquet', out_data_path='data/prompt_infos.jsonl', n_samples=100, dset_kwargs={'dataset_project': 'tgutil_llms', 'dataset_name': 'prompt_info_sample'}) prompt_config=PromptConfig(prompt_template_name='md_prompt.jinja', templates_path='prompt_templates', data_path='data/prompt_infos.jsonl') generation_config=TextGenerationConfig(out_dir='output') name='sampled document expansion pipeline' project='github_search/document_expansion'
 
 #+BEGIN_SRC python :session generate_texts.org  :exports both
 
+url = "http://localhost:8765/generate"
+
 sampling_config = cfg.sampling_config
-generation_config = cfg.generation_config
+generation_config = APIConfig(endpoint_url=url, out_dir=cfg.generation_config.out_dir, model_name="rwvk-4-raven-7b")
 prompt_config = cfg.prompt_config
 #+END_SRC
 
@@ -52,7 +53,7 @@ cfg
 #+END_SRC
 
 #+RESULTS:
-: sampling_config=SamplingConfig(pq_data_path='data/nbow_data_test.parquet', out_data_path='data/prompt_infos.jsonl', n_samples=10, dset_kwargs={'dataset_project': 'tgutil_llms', 'dataset_name': 'prompt_info_sample'}) prompt_config=PromptConfig(prompt_template_name='md_prompt.jinja', templates_path='prompt_templates', data_path='data/prompt_infos.jsonl') generation_config=TextGenerationConfig(model_name='sgugger/rwkv-7b-pile', out_dir='output') name='sampled document expansion pipeline' project='github_search/document_expansion'
+: sampling_config=SamplingConfig(pq_data_path='data/nbow_data_test.parquet', out_data_path='data/prompt_infos.jsonl', n_samples=100, dset_kwargs={'dataset_project': 'tgutil_llms', 'dataset_name': 'prompt_info_sample'}) prompt_config=PromptConfig(prompt_template_name='md_prompt.jinja', templates_path='prompt_templates', data_path='data/prompt_infos.jsonl') generation_config=TextGenerationConfig(out_dir='output') name='sampled document expansion pipeline' project='github_search/document_expansion'
 
 #+BEGIN_SRC python :session generate_texts.org  :exports both
 prompt_infos = sample_data(sampling_config)
@@ -74,13 +75,35 @@ generated_records = expand_documents(generation_config, prompt_config, prompt_in
 #+RESULTS:
 
 #+BEGIN_SRC python :session generate_texts.org  :exports both :async
+generated_records
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+                                         repo_records  ...                                     generated_text
+0   [{'dependencies': 'comic_layout/tests.py front...  ...  \n['video_and_audio_to_time', 'video_and_audio...
+1   [{'dependencies': 'header_based_model.py norma...  ...  \n[data, preprocessing, classification]\n## sc...
+2   [{'dependencies': 'code/knowledgedistillation/...  ...  \n['crack', 'net', 'draw']\n\n## repository\np...
+3   [{'dependencies': 'ocd/__init__.py setup.py te...  ...  \n['image generation']\n\n## repository\nNatha...
+4   [{'dependencies': 'DataGenerator.py Model.py G...  ...  \n['unsupervised learning']\n\n## repository\n...
+..                                                ...  ...                                                ...
+95  [{'dependencies': 'spectral_ops.py torch_align...  ...  \n['generalization bound']\n\n## repository\nt...
+96  [{'dependencies': 'Cleaning_data.py SVM_model/...  ...  \n['landmark determination',\n 'maxmin', 'trai...
+97  [{'dependencies': 'lib/modules/ranker.py lib/m...  ...  \n['image comparison']\n\n## repository\nArjan...
+98  [{'dependencies': 'src/training_scripts/sprp_o...  ...  \nmachine-translation\n\n## repository\nD-PSSM...
+99  [{'dependencies': 'python/BoostedHP.py Boosted...  ...  \n['claims','svm']\n\n## repository\nsergiom/C...
+
+[100 rows x 6 columns]
+#+end_example
+
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
 generated_records.to_json(f"output/{model_type}_generated_records.json", orient="records", lines=True)
 #+END_SRC
 
 #+RESULTS:
 : None
 
-#+BEGIN_SRC python :session generate_texts.org  :exports both
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
 generated_records = pd.read_json(f"output/{model_type}_generated_records.json", orient="records", lines=True)
 #+END_SRC
 
@@ -111,18 +134,23 @@ evaluated_df.to_json(f"output/{model_type}_evaluated_records.json", orient="reco
 #+END_SRC
 
 #+RESULTS:
-#+begin_example
-                                                repo  ... sentence_transformer_similarity
-0                   inyukwo1/Coarse2fine_boilerplate  ...                        0.331527
-1                       julian-risch/TRAC-COLING2018  ...                        0.050634
-2                 fyangneil/pavement-crack-detection  ...                        0.025184
-3                  sweetcocoa/DeepComplexUNetPyTorch  ...                        0.329391
-4  ChingtingC/Code-Switching-Sentence-Generation-...  ...                        0.287510
-5                facebookresearch/online_dialog_eval  ...                        0.175279
-6                                        Leotju/MGAN  ...                        0.101265
-7                          d-maurya/hypred_tensorEVD  ...                        0.166257
-8                               ecker-lab/robust-bdd  ...                        0.127960
-9                           team-approx-bayes/dnn2gp  ...                        0.207896
+: None
 
-[10 rows x 15 columns]
+#+BEGIN_SRC python :session generate_texts.org  :exports both :async
+evaluated_df.describe()
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+        edit_word  jaccard_lst  HuggingfaceMetricName.bleurt  ...   rougeLsum         wmd  sentence_transformer_similarity
+count  100.000000   100.000000                    100.000000  ...  100.000000  100.000000                       100.000000
+mean     0.991383     0.007000                     -1.531317  ...    0.036500    0.253778                         0.192415
+std      0.027694     0.041922                      0.244561  ...    0.063505    0.065026                         0.104150
+min      0.857143     0.000000                     -2.071814  ...    0.000000    0.133845                        -0.024368
+25%      1.000000     0.000000                     -1.659660  ...    0.000000    0.209095                         0.126864
+50%      1.000000     0.000000                     -1.543564  ...    0.000000    0.252606                         0.169870
+75%      1.000000     0.000000                     -1.420704  ...    0.078526    0.287210                         0.257821
+max      1.000000     0.333333                     -0.809085  ...    0.230769    0.477375                         0.564734
+
+[8 rows x 9 columns]
 #+end_example

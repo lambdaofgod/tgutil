@@ -21,10 +21,12 @@ class APIParams:
         api_params_mapping = {
             "text-generation-inference": cls._get_text_generation_inference_default_api_params,
             "lmserver": cls._get_lmserver_default_api_params,
+            "vllm": cls._get_vllm_default_api_params,
         }
         api_text_field_mapping = {
             "text-generation-inference": "inputs",
             "lmserver": "prompt",
+            "vllm": "prompt",
         }
         assert flavor in api_params_mapping.keys()
         params = api_params_mapping[flavor]()
@@ -75,6 +77,22 @@ class APIParams:
             },
         }
 
+    @classmethod
+    def _get_vllm_default_api_params(cls):
+        return {
+            "prompt": "string",
+            "sampling_parameters": {
+                "use_beam_search": False,
+                "max_tokens": 50,
+                "temperature": 0.5,
+                "top_k": -1,
+                "top_p": 0.9,
+                "presence_penalty": 0,
+                "frequency_penalty": 0.0,
+                "repetition_penalty": 1.0,
+            },
+        }
+
 
 class APIBackend(Backend, BaseModel):
     endpoint_url: str
@@ -95,6 +113,8 @@ class APIBackend(Backend, BaseModel):
             return response["texts"]
         elif self.flavor == "text-generation-inference":
             return [response["generated_text"]]
+        elif self.flavor == "vllm":
+            return response["text"]
         else:
             raise ValueError(f"Unknown flavor: {self.flavor}")
 

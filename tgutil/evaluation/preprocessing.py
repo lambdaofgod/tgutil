@@ -58,7 +58,6 @@ class EvalDFPreprocessor(BaseModel):
             sanitize_re = "\[(.*)\]?"
             extracted_sanitized_part = next(re.finditer(sanitize_re, s)).group()
         except:
-            print(s)
             extracted_sanitized_part = s
         punctuation_pattern = r"([{}])".format("\[\]\(\)'")
         cleaned_m = re.sub(punctuation_pattern, "", extracted_sanitized_part)
@@ -81,7 +80,6 @@ class EvalDFPreprocessor(BaseModel):
             m = next(re.finditer(sanitize_re, s))
             return ", ".join(ast.literal_eval(m.group()))
         except Exception as e:
-            print(e)
             return s
 
     @classmethod
