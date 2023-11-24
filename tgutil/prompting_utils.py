@@ -1,8 +1,7 @@
 import abc
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union, Any
 
-from promptify import Prompter
 from minichain import prompt
 from minichain.backend import Backend
 from mlutil import minichain_utils
@@ -13,6 +12,11 @@ import requests
 from typing import Iterator
 from tgutil.configs import TextGenerationConfig, APIConfig
 from returns.result import Result, Success, Failure
+
+try:
+    from promptify import Prompter
+except ImportError:
+    Prompter = Any
 
 
 class APIParams:
