@@ -5,7 +5,7 @@ description = ""
 authors = ["Jakub 'lambdaofgod' Bartczuk <bartczukkuba@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = ">3.9,<3.13"
+python = ">=3.9,<3.13"
 jsonlines = "^4.0.0"
 rwkv = "^0.8.22"
 pydantic-yaml = "^1.2.0"
