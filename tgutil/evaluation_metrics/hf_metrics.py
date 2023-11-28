@@ -9,7 +9,7 @@ from tgutil.type_utils import StrEnum
 
 class HuggingfaceMetricName(StrEnum):
     rouge = "rouge"
-    bleurt = "bleurt"
+    bertscore = "bertscore"
 
 
 class HuggingfaceMetric(TextGenerationMetric, BaseModel):
@@ -22,6 +22,7 @@ class HuggingfaceMetric(TextGenerationMetric, BaseModel):
         texts_df: pd.DataFrame,
         reference_text_col: str,
         predicted_text_col: str,
+        language="en"
     ):
         reference_texts = texts_df[reference_text_col]
         predicted_texts = texts_df[predicted_text_col]
@@ -59,8 +60,7 @@ class HuggingfaceMetric(TextGenerationMetric, BaseModel):
         arbitrary_types_allowed = True
         kwargs = {
             "rouge": {"use_aggregator": False},
-            "bleurt": {},
+            "bertscore": {"lang": "en"},
         }
         args = {
-            "bleurt": ["bleurt-base-128"],
         }

@@ -17,23 +17,25 @@ def texts_df():
         "text classification, graph neural network, fairness, general classification",
     ]
     return pd.DataFrame(
-        {"reference_text": reference_texts, "predicted_text": predicted_texts}
+        {"reference_text": reference_texts, "generated_text": predicted_texts}
     )
 
 
 def run_metrics_test(metric_names, texts_df):
     return TextGenerationEvaluator.from_metric_names(metric_names).get_evaluated_df(
-        texts_df
+        texts_df, stratify="reference_text"
     )
 
 
 def test_string_metrics(texts_df):
-    scores = run_metrics_test(["edit_none", "jaccard_word", "jaccard_lst"], texts_df)
+    scores = run_metrics_test(
+        ["edit_none", "jaccard_word", "jaccard_lst"], texts_df)
     assert np.isclose(scores["edit_none"].iloc[0], 1 / len("model selections"))
     assert np.isclose(
         scores["jaccard_word"].values, np.array([1 / 3, 1 / 2, 3 / 8])
     ).all()
-    assert np.isclose(scores["jaccard_lst"].values, np.array([0, 1 / 2, 0.4])).all()
+    assert np.isclose(scores["jaccard_lst"].values,
+                      np.array([0, 1 / 2, 0.4])).all()
 
 
 def test_hf_metrics(texts_df):
@@ -41,7 +43,7 @@ def test_hf_metrics(texts_df):
     there are two words and one is matched so rouge is 1/2
     """
     tested_df = texts_df.iloc[:1]
-    scores = run_metrics_test(["rouge"], tested_df)
+    scores = run_metrics_test(["rouge", "bertscore"], tested_df)
     assert np.isclose(scores["rouge1"].iloc[0], 1 / 2)
 
 

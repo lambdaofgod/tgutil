@@ -18,7 +18,13 @@ datasets = "2.10.0"
 rouge-score = "^0.1.2"
 pot = "^0.9.1"
 returns = "^0.22.0"
+mlutil = {git = "https://github.com/lambdaofgod/mlutil"}
 
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+bert-score = "^0.3.13"
+ipdb = "^0.13.13"
 
 [build-system]
 requires = ["poetry-core"]

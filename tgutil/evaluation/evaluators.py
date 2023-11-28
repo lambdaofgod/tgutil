@@ -10,7 +10,8 @@ class TextGenerationEvaluator(BaseModel):
 
     @classmethod
     def from_metric_names(
-        cls, metric_names=["bleurt", "rouge", "sentence_transformer_similarity"]
+        cls, metric_names=["bertscore", "rouge",
+                           "sentence_transformer_similarity"]
     ):
         metrics = [load_metric(metric_name) for metric_name in metric_names]
         return cls(evaluation_metrics=metrics)
