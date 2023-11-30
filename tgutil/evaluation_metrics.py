@@ -11,12 +11,16 @@ from mlutil.feature_extraction.embeddings import load_gensim_embedding_model
 from enum import Enum
 
 
+def _strip_punctuation(s):
+    return s.translate(None, string.punctuation)
+
+
 class MetricsKwargs:
     kwargs = {
         "sentence_transformer_similarity": {
             "model_name": "paraphrase-distilroberta-base-v1"
         },
-        "wmd": {"model_name": "glove-twitter-25"},
+        "wmd": {"model_name": "glove-wiki-gigaword-100"},
         "rouge": {"use_aggregator": False},
         "bleurt": {},
     }
@@ -34,8 +38,8 @@ class HuggingfaceMetric(TextGenerationMetric, BaseModel):
         predicted_text_col: str,
     ):
         metric_kwargs = MetricsKwargs.kwargs.get(self.name, dict())
-        reference_texts = texts_df[reference_text_col]
-        predicted_texts = texts_df[predicted_text_col]
+        reference_texts = texts_df[reference_text_col].apply(_strip_punctuation)
+        predicted_texts = texts_df[predicted_text_col].apply(_strip_punctuation)
         scores = self.hf_metric.compute(
             predictions=predicted_texts.to_list(),
             references=reference_texts.to_list(),
@@ -70,8 +74,11 @@ class WMDMetric(TextGenerationMetric, BaseModel):
         for pred_text, ref_text in zip(
             texts_df[reference_text_col], texts_df[predicted_text_col]
         ):
-            pred_text = pred_text.translate(None, string.punctuation)
-            ref_text = ref_text.translate(None, string.punctuation)
+            import ipdb
+
+            ipdb.set_trace()
+            pred_text = _strip_punctuation(pred_text).split()
+            ref_text = _strip_punctuation(ref_text).split()
             distance = self.gensim_model.wmdistance(pred_text, ref_text)
             wmdistances.append(distance)
         return pd.DataFrame({"wmd": wmdistances}, index=texts_df.index)
