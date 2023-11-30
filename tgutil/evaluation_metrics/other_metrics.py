@@ -6,6 +6,7 @@ import torch
 import sentence_transformers
 from mlutil.feature_extraction.embeddings import load_gensim_embedding_model
 from tgutil.evaluation_metrics.base import TextGenerationMetric
+from tgutil.utils import _strip_punctuation
 
 
 class WMDMetric(TextGenerationMetric, BaseModel):
@@ -17,6 +18,8 @@ class WMDMetric(TextGenerationMetric, BaseModel):
         for pred_text, ref_text in zip(
             texts_df[reference_text_col], texts_df[predicted_text_col]
         ):
+            pred_text = _strip_punctuation(pred_text).split()
+            ref_text = _strip_punctuation(ref_text).split()
             distance = self.gensim_model.wmdistance(pred_text, ref_text)
             wmdistances.append(distance)
         return pd.DataFrame({"wmd": wmdistances}, index=texts_df.index)

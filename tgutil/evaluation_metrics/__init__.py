@@ -18,7 +18,7 @@ class OtherMetricsKwargs:
         "sentence_transformer_similarity": {
             "model_name": "paraphrase-distilroberta-base-v1"
         },
-        "wmd": {"model_name": "glove-twitter-25"},
+        "wmd": {"model_name": "fasttext-wiki-news-subwords-300"},
     }
 
 

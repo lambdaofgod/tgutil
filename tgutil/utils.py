@@ -2,6 +2,7 @@ from typing import Dict, Any
 import hashlib
 import json
 from fastapi.encoders import jsonable_encoder
+import string
 
 
 def dict_hash(dictionary: Dict[str, Any]) -> str:
@@ -12,3 +13,7 @@ def dict_hash(dictionary: Dict[str, Any]) -> str:
     encoded = json.dumps(jsonable_encoder(dictionary), sort_keys=True).encode()
     dhash.update(encoded)
     return dhash.hexdigest()
+
+
+def _strip_punctuation(s):
+    return s.translate(str.maketrans("", "", string.punctuation))
