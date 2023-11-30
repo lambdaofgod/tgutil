@@ -38,10 +38,14 @@ class EvalDFPreprocessor(BaseModel):
         return cls.prepare_texts_for_scoring(generated_text_df)
 
     def prepare_texts_for_scoring(self, texts_df):
+        raw_reference_texts = texts_df[self.reference_text_col]
+        processed_reference_texts = self.preprocess_texts(
+            texts_df[self.reference_text_col]
+        )
         return texts_df.assign(
             raw_generated_text=texts_df["generated_text"],
-            raw_reference_text=texts_df[self.reference_text_col],
-            reference_text=self.preprocess_texts(texts_df[self.reference_text_col]),
+            raw_reference_text=raw_reference_texts,
+            reference_text=processed_reference_texts,
             generated_text=self.preprocess_texts(texts_df["generated_text"]),
         )
 

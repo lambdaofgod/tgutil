@@ -19,6 +19,7 @@ rouge-score = "^0.1.2"
 pot = "^0.9.1"
 returns = "^0.22.0"
 mlutil = {git = "https://github.com/lambdaofgod/mlutil"}
+gensim = "^4.3.2"
 
 
 [tool.poetry.group.dev.dependencies]
