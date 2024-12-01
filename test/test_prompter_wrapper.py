@@ -15,8 +15,8 @@ def test_get_dict_with_generated_text_success():
         prompt_template=template
     )
     
-    # Mock the generation results to return Success
-    wrapper.get_generation_results = Mock(return_value=Success("Generated text"))
+    # Mock the generate_text_fn to return a mock with run method
+    wrapper.generate_text_fn.return_value.run = Mock(return_value="Generated text")
     
     # Create test context info
     context_info = ContextPromptInfo(
@@ -44,9 +44,9 @@ def test_get_dict_with_generated_text_failure():
         prompt_template=template
     )
     
-    # Mock the generation results to return Failure
+    # Mock the generate_text_fn to raise an exception
     test_exception = Exception("Generation failed")
-    wrapper.get_generation_results = Mock(return_value=Failure(test_exception))
+    wrapper.generate_text_fn.side_effect = test_exception
     
     # Create test context info
     context_info = ContextPromptInfo(
