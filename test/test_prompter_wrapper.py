@@ -20,9 +20,12 @@ def test_get_dict_with_generated_text_success():
     
     # Create test context info
     context_info = ContextPromptInfo(
-        repo="test-repo",
-        dependencies=["dep1", "dep2"],
-        tasks=["task1"]
+        prompt_info=PromptInfo(
+            content="test content",
+            id="test-id"
+        ),
+        context_prompt_infos=[],
+        id="test-context-id"
     )
     
     # Execute
@@ -50,9 +53,12 @@ def test_get_dict_with_generated_text_failure():
     
     # Create test context info
     context_info = ContextPromptInfo(
-        repo="test-repo",
-        dependencies=["dep1", "dep2"],
-        tasks=["task1"]
+        prompt_info=PromptInfo(
+            content="test content",
+            id="test-id"
+        ),
+        context_prompt_infos=[],
+        id="test-context-id"
     )
     
     # Execute
@@ -81,9 +87,12 @@ def test_minichain_prompter_wrapper_with_openai():
     
     # Create test context info
     context_info = ContextPromptInfo(
-        repo="test-openai-repo",
-        dependencies=["dep1", "dep2"],
-        tasks=["task1"]
+        prompt_info=PromptInfo(
+            content="test content",
+            id="test-id"
+        ),
+        context_prompt_infos=[],
+        id="test-context-id"
     )
     
     # Mock the generation results
