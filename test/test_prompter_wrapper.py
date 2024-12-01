@@ -33,7 +33,7 @@ def test_get_dict_with_generated_text_success():
     result = wrapper.get_dict_with_generated_text(context_info)
     
     # Assert
-    assert result.is_success()
+    assert result.is_success()  # Method call, not property
     value = result.unwrap()
     assert value["generated_text"] == "Generated text"
     assert value["input_text"] == "Test template test-repo"
@@ -104,7 +104,7 @@ def test_minichain_prompter_wrapper_with_openai():
     result = wrapper.get_dict_with_generated_text(context_info)
     
     # Assert
-    assert result.success
+    assert result.is_success()
     value = result.unwrap()
     assert value["generated_text"] == "OpenAI generated response"
     assert value["input_text"] == "Test template with repo: test-openai-repo"
