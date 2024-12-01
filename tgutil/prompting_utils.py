@@ -26,11 +26,13 @@ class APIParams:
             "text-generation-inference": cls._get_text_generation_inference_default_api_params,
             "lmserver": cls._get_lmserver_default_api_params,
             "vllm": cls._get_vllm_default_api_params,
+            "openai": cls._get_openai_default_api_params,
         }
         api_text_field_mapping = {
             "text-generation-inference": "inputs",
             "lmserver": "prompt",
             "vllm": "prompt",
+            "openai": "prompt",
         }
         assert flavor in api_params_mapping.keys()
         params = api_params_mapping[flavor]()
@@ -95,6 +97,21 @@ class APIParams:
                 "frequency_penalty": 0.0,
                 "repetition_penalty": 1.0,
             },
+        }
+
+    @classmethod
+    def _get_openai_default_api_params(cls):
+        return {
+            "model": "gpt-3.5-turbo",
+            "prompt": "string",
+            "max_tokens": 50,
+            "temperature": 0.7,
+            "top_p": 1.0,
+            "n": 1,
+            "stream": False,
+            "presence_penalty": 0,
+            "frequency_penalty": 0,
+            "stop": None
         }
 
 
