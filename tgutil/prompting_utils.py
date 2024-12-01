@@ -136,6 +136,8 @@ class APIBackend(Backend, BaseModel):
             return [response["generated_text"]]
         elif self.flavor == "vllm":
             return response["text"]
+        elif self.flavor == "openai":
+            return response["choices"][0]["text"]
         else:
             raise ValueError(f"Unknown flavor: {self.flavor}")
 
