@@ -66,7 +66,7 @@ def test_get_dict_with_generated_text_failure():
 def test_minichain_prompter_wrapper_with_openai():
     # Setup
     api_config = APIConfig(
-        endpoint_url="https://api.openai.com/v1/completions",
+        endpoint_url="https://localhost:11434/v1",
         flavor="openai"
     )
     
