@@ -2,9 +2,10 @@ import pytest
 from unittest.mock import Mock
 import jinja2
 from returns.result import Success, Failure
-from tgutil.prompting import ContextPromptInfo
+from tgutil.prompting import ContextPromptInfo, PromptInfo
 from tgutil.prompting_utils import MinichainPrompterWrapper
 from tgutil.configs import APIConfig, TextGenerationConfig
+
 
 def test_get_dict_with_generated_text_success():
     # Setup
@@ -65,7 +66,7 @@ def test_get_dict_with_generated_text_failure():
     result = wrapper.get_dict_with_generated_text(context_info)
     
     # Assert
-    assert result.is_failure()
+    assert result.failure
     assert isinstance(result.failure(), Exception)
     assert str(result.failure()) == "Generation failed"
 
@@ -103,7 +104,7 @@ def test_minichain_prompter_wrapper_with_openai():
     result = wrapper.get_dict_with_generated_text(context_info)
     
     # Assert
-    assert result.is_success()
+    assert result.success
     value = result.unwrap()
     assert value["generated_text"] == "OpenAI generated response"
     assert value["input_text"] == "Test template with repo: test-openai-repo"
